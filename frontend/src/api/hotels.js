@@ -1,18 +1,45 @@
 import apiClient from './client.js';
 
-export const getHotels = async ({ search = '', category = '' } = {}) => {
+export const getHotels = async (filters = {}) => {
+  const {
+    search = '',
+    category = '',
+    priceRange = '',
+    minRating = 0,
+    amenities = {}
+  } = filters;
+
   const response = await apiClient.get('/hotels', {
     params: {
       search: search || undefined,
-      category: category || undefined
+      category: category || undefined,
+      price_range: priceRange || undefined,
+      min_rating: minRating ? minRating : undefined,
+      ...Object.fromEntries(
+        Object.entries(amenities)
+          .filter(([, enabled]) => enabled)
+          .map(([key]) => [key, true])
+      )
     }
   });
 
   return response.data.data;
 };
 
-export const getTopRatedHotels = async () => {
-  const response = await apiClient.get('/hotels/top-rated');
+export const getTopRatedHotels = async (params = {}) => {
+  const response = await apiClient.get('/hotels/top-rated', {
+    params: {
+      category: params.category || undefined,
+      limit: params.limit || undefined
+    }
+  });
+  return response.data.data;
+};
+
+export const getTrendingHotels = async (params = {}) => {
+  const response = await apiClient.get('/hotels/trending', {
+    params: { limit: params.limit || undefined }
+  });
   return response.data.data;
 };
 
@@ -35,6 +62,11 @@ export const getNearbyHotels = async (id, radius = 5) => {
   const response = await apiClient.get(`/hotels/${id}/nearby`, {
     params: { radius }
   });
+  return response.data.data;
+};
+
+export const getHotelRecommendations = async (id) => {
+  const response = await apiClient.get(`/hotels/${id}/recommendations`);
   return response.data.data;
 };
 

@@ -18,15 +18,19 @@ import PlaceIcon from '@mui/icons-material/Place';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
 import { useEffect, useState } from 'react';
 import { addFavorite, removeFavorite } from '../api/favorites.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { getEnabledAmenities } from '../constants/amenities.js';
 
-function HotelCard({ hotel, onFavoriteChange, actions }) {
+function HotelCard({ hotel, onFavoriteChange, actions, badge, compactAmenities = false }) {
   const { isAuthenticated } = useAuth();
   const [isFavorite, setIsFavorite] = useState(Boolean(hotel.is_favorite));
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const enabledAmenities = getEnabledAmenities(hotel);
+  const amenityLimit = compactAmenities ? 3 : 4;
 
   useEffect(() => {
     setIsFavorite(Boolean(hotel.is_favorite));
@@ -67,6 +71,15 @@ function HotelCard({ hotel, onFavoriteChange, actions }) {
             alt={hotel.name}
             sx={{ objectFit: 'cover' }}
           />
+          {badge || typeof hotel.trending_score === 'number' ? (
+            <Chip
+              icon={<WhatshotIcon />}
+              label={badge || 'Trending'}
+              color="secondary"
+              size="small"
+              sx={{ position: 'absolute', left: 10, top: 10, bgcolor: 'secondary.main' }}
+            />
+          ) : null}
           <Tooltip title={isFavorite ? 'Favorited' : 'Save favorite'}>
             <IconButton
               aria-label={isFavorite ? 'Remove favorite' : 'Save favorite'}
@@ -86,7 +99,10 @@ function HotelCard({ hotel, onFavoriteChange, actions }) {
         </Box>
         <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-            <Chip label={hotel.category} color={hotel.category === 'Cafe' ? 'secondary' : 'primary'} size="small" />
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+              <Chip label={hotel.category} color={hotel.category === 'Cafe' ? 'secondary' : 'primary'} size="small" />
+              {hotel.price_range ? <Chip label={hotel.price_range} variant="outlined" size="small" /> : null}
+            </Stack>
             <Stack direction="row" alignItems="center" spacing={0.75}>
               <Rating value={Number(hotel.average_rating)} precision={0.5} readOnly size="small" />
               <Typography variant="body2" color="text.secondary">
@@ -108,6 +124,26 @@ function HotelCard({ hotel, onFavoriteChange, actions }) {
             <Typography variant="body2" color="primary.main" fontWeight={700}>
               {hotel.distance.toFixed(1)} km away
             </Typography>
+          ) : null}
+
+          {typeof hotel.favorite_count === 'number' ? (
+            <Stack direction="row" spacing={0.5} alignItems="center" color="text.secondary">
+              <FavoriteIcon fontSize="small" color="secondary" />
+              <Typography variant="body2">{hotel.favorite_count} favorites</Typography>
+            </Stack>
+          ) : null}
+
+          {enabledAmenities.length ? (
+            <Stack direction="row" gap={0.75} flexWrap="wrap">
+              {enabledAmenities.slice(0, amenityLimit).map(({ key, label, icon: Icon }) => (
+                <Tooltip title={label} key={key}>
+                  <Chip icon={<Icon />} label={label} size="small" variant="outlined" />
+                </Tooltip>
+              ))}
+              {enabledAmenities.length > amenityLimit ? (
+                <Chip label={`+${enabledAmenities.length - amenityLimit}`} size="small" />
+              ) : null}
+            </Stack>
           ) : null}
 
           <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>

@@ -6,11 +6,26 @@ import {
   findHotelsByCreator,
   findNearbyHotels,
   findPopularHotels,
+  findRecommendedHotels,
   findReviewsByHotelId,
   findRecentHotels,
   findTopRatedHotels,
+  findTrendingHotels,
   updateHotel
 } from '../models/hotelModel.js';
+
+const priceRanges = ['Budget', 'Moderate', 'Premium', 'Luxury'];
+const amenityFields = [
+  'wifi',
+  'parking',
+  'outdoor_seating',
+  'pet_friendly',
+  'air_conditioning',
+  'live_music',
+  'family_friendly'
+];
+
+const coerceBoolean = (value) => value === true || String(value).toLowerCase() === 'true';
 
 const validateHotelPayload = (payload) => {
   const errors = [];
@@ -38,19 +53,56 @@ const validateHotelPayload = (payload) => {
   if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     errors.push('Longitude must be a valid number between -180 and 180.');
   }
+  const priceRange = payload.priceRange || payload.price_range || null;
+
+  if (priceRange && !priceRanges.includes(priceRange)) {
+    errors.push('Price range must be Budget, Moderate, Premium, or Luxury.');
+  }
 
   return {
     errors,
-    values: { name, category, location, description, images, latitude, longitude }
+    values: {
+      name,
+      category,
+      location,
+      description,
+      images,
+      latitude,
+      longitude,
+      wifi: coerceBoolean(payload.wifi),
+      parking: coerceBoolean(payload.parking),
+      outdoorSeating: coerceBoolean(payload.outdoorSeating ?? payload.outdoor_seating),
+      petFriendly: coerceBoolean(payload.petFriendly ?? payload.pet_friendly),
+      airConditioning: coerceBoolean(payload.airConditioning ?? payload.air_conditioning),
+      liveMusic: coerceBoolean(payload.liveMusic ?? payload.live_music),
+      familyFriendly: coerceBoolean(payload.familyFriendly ?? payload.family_friendly),
+      priceRange
+    }
   };
 };
 
 export const getHotels = async (req, res, next) => {
   try {
-    const { search = '', category = '' } = req.query;
+    const { search = '', category = '', price_range = '', min_rating = '' } = req.query;
+    const rating = min_rating ? Number(min_rating) : null;
+
+    if (rating !== null && (!Number.isFinite(rating) || rating < 0 || rating > 5)) {
+      return res.status(400).json({ message: 'Minimum rating must be between 0 and 5.' });
+    }
+
+    if (price_range && !priceRanges.includes(price_range)) {
+      return res.status(400).json({ message: 'Invalid price range filter.' });
+    }
+
     const hotels = await findHotels({
       search: String(search).trim(),
       category: String(category).trim(),
+      priceRange: String(price_range).trim(),
+      minRating: rating,
+      amenities: amenityFields.reduce(
+        (filters, field) => ({ ...filters, [field]: req.query[field] }),
+        {}
+      ),
       userId: req.user?.id
     });
 
@@ -86,9 +138,48 @@ export const getNearbyHotels = async (req, res, next) => {
   }
 };
 
-export const getTopRatedHotels = async (_req, res, next) => {
+export const getTopRatedHotels = async (req, res, next) => {
   try {
-    res.status(200).json({ data: await findTopRatedHotels() });
+    const limit = Number(req.query.limit || 10);
+    res.status(200).json({
+      data: await findTopRatedHotels({
+        category: String(req.query.category || '').trim(),
+        limit: Number.isInteger(limit) && limit > 0 && limit <= 30 ? limit : 10
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTrendingHotels = async (req, res, next) => {
+  try {
+    const limit = Number(req.query.limit || 10);
+    res.status(200).json({
+      data: await findTrendingHotels({
+        limit: Number.isInteger(limit) && limit > 0 && limit <= 30 ? limit : 10
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecommendedHotels = async (req, res, next) => {
+  try {
+    const hotelId = Number(req.params.id);
+
+    if (!Number.isInteger(hotelId) || hotelId <= 0) {
+      return res.status(400).json({ message: 'Hotel id must be a positive integer.' });
+    }
+
+    const hotel = await findHotelById(hotelId, req.user?.id);
+
+    if (!hotel) {
+      return res.status(404).json({ message: 'Hotel or cafe not found.' });
+    }
+
+    res.status(200).json({ data: await findRecommendedHotels({ hotelId }) });
   } catch (error) {
     next(error);
   }

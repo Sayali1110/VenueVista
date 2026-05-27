@@ -13,7 +13,15 @@ CREATE TABLE hotels (
     image_url TEXT,
     created_by INT,
     latitude DECIMAL(10,8),
-    longitude DECIMAL(11,8)
+    longitude DECIMAL(11,8),
+    wifi BOOLEAN DEFAULT false,
+    parking BOOLEAN DEFAULT false,
+    outdoor_seating BOOLEAN DEFAULT false,
+    pet_friendly BOOLEAN DEFAULT false,
+    air_conditioning BOOLEAN DEFAULT false,
+    live_music BOOLEAN DEFAULT false,
+    family_friendly BOOLEAN DEFAULT false,
+    price_range VARCHAR(20) CHECK (price_range IS NULL OR price_range IN ('Budget', 'Moderate', 'Premium', 'Luxury'))
 );
 
 CREATE TABLE users (
@@ -59,3 +67,10 @@ CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_favorites_hotel_id ON favorites(hotel_id);
 CREATE INDEX idx_place_images_hotel_id ON place_images(hotel_id);
 CREATE INDEX idx_hotels_coordinates ON hotels(latitude, longitude);
+CREATE INDEX idx_hotels_location ON hotels(location);
+CREATE INDEX idx_hotels_price_range ON hotels(price_range);
+CREATE INDEX idx_reviews_rating ON reviews(rating);
+CREATE INDEX idx_reviews_hotel_rating ON reviews(hotel_id, rating);
+CREATE INDEX idx_reviews_created_at ON reviews(created_at);
+CREATE INDEX idx_favorites_created_at ON favorites(created_at);
+CREATE INDEX idx_hotels_amenities ON hotels(wifi, parking, outdoor_seating, pet_friendly, air_conditioning, live_music, family_friendly);

@@ -22,7 +22,9 @@ import PlaceMap from '../components/PlaceMap.jsx';
 import ReviewForm from '../components/ReviewForm.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import ErrorAlert from '../components/ErrorAlert.jsx';
-import { getHotelById, getNearbyHotels } from '../api/hotels.js';
+import HotelCard from '../components/HotelCard.jsx';
+import { getEnabledAmenities } from '../constants/amenities.js';
+import { getHotelById, getHotelRecommendations, getNearbyHotels } from '../api/hotels.js';
 
 function NearbyPlaces({ hotelId }) {
   const [nearby, setNearby] = useState([]);
@@ -97,6 +99,63 @@ function NearbyPlaces({ hotelId }) {
   );
 }
 
+function RecommendedPlaces({ hotelId }) {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        setRecommendations(await getHotelRecommendations(hotelId));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadRecommendations();
+  }, [hotelId]);
+
+  return (
+    <Stack spacing={2}>
+      <Typography variant="h5" component="h2">
+        Recommended Places
+      </Typography>
+      {error ? <ErrorAlert message={error} /> : null}
+      {loading ? (
+        <Grid container spacing={2}>
+          {[1, 2, 3].map((item) => (
+            <Grid item xs={12} sm={6} md={4} key={item}>
+              <Skeleton variant="rounded" height={360} />
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Grid container spacing={2}>
+          {recommendations.map((place) => (
+            <Grid item xs={12} sm={6} md={4} key={place.id}>
+              <HotelCard hotel={place} compactAmenities />
+            </Grid>
+          ))}
+          {!recommendations.length ? (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No similar places found.
+                </Typography>
+              </Paper>
+            </Grid>
+          ) : null}
+        </Grid>
+      )}
+    </Stack>
+  );
+}
+
 function HotelDetailsPage() {
   const { id } = useParams();
   const [hotel, setHotel] = useState(null);
@@ -134,6 +193,7 @@ function HotelDetailsPage() {
   }
 
   const images = hotel.images?.length ? hotel.images : [hotel.image_url].filter(Boolean);
+  const enabledAmenities = getEnabledAmenities(hotel);
 
   return (
     <Stack spacing={4}>
@@ -167,6 +227,22 @@ function HotelDetailsPage() {
             <Typography variant="body1" color="text.secondary">
               {hotel.description}
             </Typography>
+            <Stack spacing={1}>
+              <Typography variant="subtitle1" fontWeight={700}>
+                Amenities
+              </Typography>
+              <Stack direction="row" gap={1} flexWrap="wrap">
+                {enabledAmenities.map(({ key, label, icon: Icon }) => (
+                  <Chip key={key} icon={<Icon />} label={label} variant="outlined" />
+                ))}
+                {hotel.price_range ? <Chip label={hotel.price_range} color="primary" /> : null}
+                {!enabledAmenities.length && !hotel.price_range ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Amenities not listed.
+                  </Typography>
+                ) : null}
+              </Stack>
+            </Stack>
             <Typography variant="body2" color="text.secondary">
               Coordinates: {Number(hotel.latitude).toFixed(6)}, {Number(hotel.longitude).toFixed(6)}
             </Typography>
@@ -191,6 +267,7 @@ function HotelDetailsPage() {
       </Box>
 
       <NearbyPlaces hotelId={hotel.id} />
+      <RecommendedPlaces hotelId={hotel.id} />
 
       <Box>
         <Typography variant="h5" component="h2" gutterBottom>
