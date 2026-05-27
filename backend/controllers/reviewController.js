@@ -1,14 +1,10 @@
 import { createReview, deleteReviewById } from '../models/reviewModel.js';
 
-const validateReviewPayload = ({ hotel_id, user_id, rating, review }) => {
+const validateReviewPayload = ({ hotel_id, rating, review }) => {
   const errors = [];
 
   if (!Number.isInteger(Number(hotel_id)) || Number(hotel_id) <= 0) {
     errors.push('hotel_id must be a positive integer.');
-  }
-
-  if (!Number.isInteger(Number(user_id)) || Number(user_id) <= 0) {
-    errors.push('user_id must be a positive integer.');
   }
 
   if (!Number.isInteger(Number(rating)) || Number(rating) < 1 || Number(rating) > 5) {
@@ -32,7 +28,7 @@ export const addReview = async (req, res, next) => {
 
     const created = await createReview({
       hotel_id: Number(req.body.hotel_id),
-      user_id: Number(req.body.user_id),
+      user_id: req.user.id,
       rating: Number(req.body.rating),
       review: String(req.body.review).trim()
     });
@@ -66,4 +62,3 @@ export const removeReview = async (req, res, next) => {
     next(error);
   }
 };
-

@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS favorites;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS hotels;
 
@@ -8,14 +9,21 @@ CREATE TABLE hotels (
     category VARCHAR(50) NOT NULL,
     location VARCHAR(255),
     description TEXT,
-    image_url TEXT
+    image_url TEXT,
+    created_by INT
 );
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    email VARCHAR(255)
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE hotels
+ADD CONSTRAINT fk_hotels_created_by
+FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE TABLE reviews (
     id SERIAL PRIMARY KEY,
@@ -26,7 +34,16 @@ CREATE TABLE reviews (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE favorites (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    hotel_id INT REFERENCES hotels(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, hotel_id)
+);
+
 CREATE INDEX idx_hotels_name ON hotels USING gin (to_tsvector('english', name));
 CREATE INDEX idx_hotels_category ON hotels(category);
 CREATE INDEX idx_reviews_hotel_id ON reviews(hotel_id);
-
+CREATE INDEX idx_favorites_user_id ON favorites(user_id);
+CREATE INDEX idx_favorites_hotel_id ON favorites(hotel_id);

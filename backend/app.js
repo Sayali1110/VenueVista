@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes.js';
+import favoriteRoutes from './routes/favoriteRoutes.js';
 import hotelRoutes from './routes/hotelRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
@@ -37,6 +39,8 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'venuevista-api' });
 });
 
+app.use('/api/auth', authRoutes);
+app.use('/api/favorites', favoriteRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/reviews', reviewRoutes);
 

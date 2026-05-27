@@ -14,10 +14,10 @@ import {
 } from '@mui/material';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import { createReview } from '../api/reviews.js';
-
-const DEFAULT_USER_ID = 1;
+import { useAuth } from '../context/AuthContext.jsx';
 
 function ReviewForm({ hotelId, open, onClose, onSubmitted }) {
+  const { isAuthenticated } = useAuth();
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +40,11 @@ function ReviewForm({ hotelId, open, onClose, onSubmitted }) {
     event.preventDefault();
     setError('');
 
+    if (!isAuthenticated) {
+      setError('Please log in to write a review.');
+      return;
+    }
+
     if (!rating) {
       setError('Please select a rating.');
       return;
@@ -54,7 +59,6 @@ function ReviewForm({ hotelId, open, onClose, onSubmitted }) {
       setSubmitting(true);
       await createReview({
         hotel_id: Number(hotelId),
-        user_id: DEFAULT_USER_ID,
         rating,
         review: review.trim()
       });
@@ -115,4 +119,3 @@ function ReviewForm({ hotelId, open, onClose, onSubmitted }) {
 }
 
 export default ReviewForm;
-
