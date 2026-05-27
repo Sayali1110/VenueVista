@@ -1,22 +1,101 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
+  CardMedia,
   Chip,
   Divider,
   Grid,
   Paper,
   Rating,
+  Skeleton,
   Stack,
   Typography
 } from '@mui/material';
 import AddCommentIcon from '@mui/icons-material/AddComment';
 import PlaceIcon from '@mui/icons-material/Place';
+import ImageGallery from '../components/ImageGallery.jsx';
+import PlaceMap from '../components/PlaceMap.jsx';
 import ReviewForm from '../components/ReviewForm.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import ErrorAlert from '../components/ErrorAlert.jsx';
-import { getHotelById } from '../api/hotels.js';
+import { getHotelById, getNearbyHotels } from '../api/hotels.js';
+
+function NearbyPlaces({ hotelId }) {
+  const [nearby, setNearby] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadNearby = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        setNearby(await getNearbyHotels(hotelId));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadNearby();
+  }, [hotelId]);
+
+  return (
+    <Stack spacing={2}>
+      <Typography variant="h5" component="h2">
+        Nearby Places
+      </Typography>
+      {error ? <ErrorAlert message={error} /> : null}
+      {loading ? (
+        <Grid container spacing={2}>
+          {[1, 2, 3].map((item) => (
+            <Grid item xs={12} sm={4} key={item}>
+              <Skeleton variant="rounded" height={190} />
+            </Grid>
+          ))}
+        </Grid>
+      ) : (
+        <Grid container spacing={2}>
+          {nearby.map((place) => (
+            <Grid item xs={12} sm={6} md={4} key={place.id}>
+              <Card component={RouterLink} to={`/hotels/${place.id}`} sx={{ display: 'block', textDecoration: 'none' }}>
+                <CardMedia component="img" height="140" image={place.image_url} alt={place.name} sx={{ objectFit: 'cover' }} />
+                <CardContent>
+                  <Typography variant="h6" color="text.primary">
+                    {place.name}
+                  </Typography>
+                  <Typography variant="body2" color="primary.main" fontWeight={700}>
+                    {place.distance.toFixed(1)} km away
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                    <Rating value={Number(place.average_rating)} precision={0.5} readOnly size="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      {Number(place.average_rating).toFixed(1)}
+                    </Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+          {!nearby.length ? (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No nearby places found within 5 km.
+                </Typography>
+              </Paper>
+            </Grid>
+          ) : null}
+        </Grid>
+      )}
+    </Stack>
+  );
+}
 
 function HotelDetailsPage() {
   const { id } = useParams();
@@ -54,22 +133,13 @@ function HotelDetailsPage() {
     return null;
   }
 
+  const images = hotel.images?.length ? hotel.images : [hotel.image_url].filter(Boolean);
+
   return (
     <Stack spacing={4}>
       <Grid container spacing={4}>
         <Grid item xs={12} md={6}>
-          <Box
-            component="img"
-            src={hotel.image_url}
-            alt={hotel.name}
-            sx={{
-              width: '100%',
-              aspectRatio: '4 / 3',
-              objectFit: 'cover',
-              borderRadius: 2,
-              boxShadow: '0 18px 44px rgba(31, 45, 43, 0.16)'
-            }}
-          />
+          <ImageGallery images={images} title={hotel.name} />
         </Grid>
         <Grid item xs={12} md={6}>
           <Stack spacing={2.5}>
@@ -97,6 +167,9 @@ function HotelDetailsPage() {
             <Typography variant="body1" color="text.secondary">
               {hotel.description}
             </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Coordinates: {Number(hotel.latitude).toFixed(6)}, {Number(hotel.longitude).toFixed(6)}
+            </Typography>
             <Box>
               <Button
                 variant="contained"
@@ -109,6 +182,15 @@ function HotelDetailsPage() {
           </Stack>
         </Grid>
       </Grid>
+
+      <Box>
+        <Typography variant="h5" component="h2" gutterBottom>
+          Map
+        </Typography>
+        <PlaceMap name={hotel.name} latitude={hotel.latitude} longitude={hotel.longitude} />
+      </Box>
+
+      <NearbyPlaces hotelId={hotel.id} />
 
       <Box>
         <Typography variant="h5" component="h2" gutterBottom>
@@ -160,4 +242,3 @@ function HotelDetailsPage() {
 }
 
 export default HotelDetailsPage;
-

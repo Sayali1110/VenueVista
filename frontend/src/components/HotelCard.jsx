@@ -63,7 +63,7 @@ function HotelCard({ hotel, onFavoriteChange, actions }) {
           <CardMedia
             component="img"
             height="190"
-            image={hotel.image_url}
+            image={hotel.image_url || hotel.images?.[0]}
             alt={hotel.name}
             sx={{ objectFit: 'cover' }}
           />
@@ -103,6 +103,12 @@ function HotelCard({ hotel, onFavoriteChange, actions }) {
             <PlaceIcon fontSize="small" />
             <Typography variant="body2">{hotel.location || 'Location unavailable'}</Typography>
           </Stack>
+
+          {typeof hotel.distance === 'number' ? (
+            <Typography variant="body2" color="primary.main" fontWeight={700}>
+              {hotel.distance.toFixed(1)} km away
+            </Typography>
+          ) : null}
 
           <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>
             {hotel.description}

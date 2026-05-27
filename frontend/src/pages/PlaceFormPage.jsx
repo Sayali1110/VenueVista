@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   FormControl,
+  Grid,
   InputLabel,
   MenuItem,
   Paper,
@@ -15,6 +16,7 @@ import {
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import { createHotel, getHotelById, updateHotel } from '../api/hotels.js';
+import ImageUpload from '../components/ImageUpload.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 
 const emptyForm = {
@@ -22,7 +24,9 @@ const emptyForm = {
   category: 'Cafe',
   location: '',
   description: '',
-  image_url: ''
+  latitude: '',
+  longitude: '',
+  images: []
 };
 
 function PlaceFormPage({ mode = 'create' }) {
@@ -46,7 +50,9 @@ function PlaceFormPage({ mode = 'create' }) {
           category: hotel.category || 'Cafe',
           location: hotel.location || '',
           description: hotel.description || '',
-          image_url: hotel.image_url || ''
+          latitude: hotel.latitude ?? '',
+          longitude: hotel.longitude ?? '',
+          images: hotel.images?.length ? hotel.images : [hotel.image_url].filter(Boolean)
         });
       } catch (err) {
         setError(err.message);
@@ -62,18 +68,37 @@ function PlaceFormPage({ mode = 'create' }) {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const validate = () => {
+    if (!form.images.length) return 'Upload at least one image.';
+    if (!Number.isFinite(Number(form.latitude))) return 'Latitude is required.';
+    if (!Number.isFinite(Number(form.longitude))) return 'Longitude is required.';
+    return '';
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
     setSuccess('');
 
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const payload = {
+      ...form,
+      latitude: Number(form.latitude),
+      longitude: Number(form.longitude)
+    };
+
     try {
       setSubmitting(true);
       if (mode === 'edit') {
-        await updateHotel(id, form);
+        await updateHotel(id, payload);
         setSuccess('Place updated successfully.');
       } else {
-        await createHotel(form);
+        await createHotel(payload);
         setSuccess('Place created successfully.');
       }
       navigate('/my-places');
@@ -89,7 +114,7 @@ function PlaceFormPage({ mode = 'create' }) {
   }
 
   return (
-    <Box sx={{ maxWidth: 760, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 860, mx: 'auto' }}>
       <Paper sx={{ p: { xs: 3, md: 4 } }}>
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box>
@@ -97,7 +122,7 @@ function PlaceFormPage({ mode = 'create' }) {
               {mode === 'edit' ? 'Edit Place' : 'Add Place'}
             </Typography>
             <Typography color="text.secondary">
-              Add useful details and a public image URL.
+              Add the location, coordinates, and upload gallery images.
             </Typography>
           </Box>
           {error ? <Alert severity="error">{error}</Alert> : null}
@@ -116,6 +141,30 @@ function PlaceFormPage({ mode = 'create' }) {
             </Select>
           </FormControl>
           <TextField label="Location" value={form.location} onChange={(event) => updateField('location', event.target.value)} required />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Latitude"
+                type="number"
+                value={form.latitude}
+                onChange={(event) => updateField('latitude', event.target.value)}
+                required
+                fullWidth
+                inputProps={{ step: 'any', min: -90, max: 90 }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Longitude"
+                type="number"
+                value={form.longitude}
+                onChange={(event) => updateField('longitude', event.target.value)}
+                required
+                fullWidth
+                inputProps={{ step: 'any', min: -180, max: 180 }}
+              />
+            </Grid>
+          </Grid>
           <TextField
             label="Description"
             value={form.description}
@@ -124,13 +173,7 @@ function PlaceFormPage({ mode = 'create' }) {
             multiline
             minRows={4}
           />
-          <TextField
-            label="Image URL"
-            type="url"
-            value={form.image_url}
-            onChange={(event) => updateField('image_url', event.target.value)}
-            required
-          />
+          <ImageUpload images={form.images} onChange={(images) => updateField('images', images)} />
           <Button type="submit" variant="contained" startIcon={<SaveIcon />} disabled={submitting}>
             {submitting ? 'Saving...' : 'Save Place'}
           </Button>
@@ -141,4 +184,3 @@ function PlaceFormPage({ mode = 'create' }) {
 }
 
 export default PlaceFormPage;
-

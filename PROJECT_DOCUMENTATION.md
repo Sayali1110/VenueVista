@@ -6,33 +6,64 @@ VenueVista - Cafe & Hotel Recommendation System
 
 ## Document Type
 
-This is a Markdown documentation file (`.md`). Markdown is recommended for software projects because it is easy to read, easy to edit, and works well on GitHub and in code editors.
+This file is a Markdown document (`.md`). Markdown is the best format for this project because it is easy to edit, readable in code editors, and works well on GitHub.
 
-If required for college or submission, this file can later be converted into:
+For submission, it can be converted into:
 
 - PDF
 - Word document (`.docx`)
 - Project report
-- README file
+- README-style documentation
+
+## Current Version
+
+Version: `1.4`
+
+Main modules:
+
+- Cafe and hotel browsing
+- Search and category filtering
+- Details page
+- Ratings and reviews
+- JWT authentication
+- Favorites
+- User-owned place management
+- Cloudinary image upload
+- Multiple-image gallery
+- Map and coordinate support
+- Nearby places
 
 ## Project Overview
 
-VenueVista is a full-stack web application that allows users to browse cafes and hotels, search by name, filter by category, view detailed information, submit ratings, and write reviews.
+VenueVista is a full-stack web application that allows users to discover cafes and hotels, view ratings and reviews, save favorite places, and manage places they created.
 
-The application is built using React for the frontend, Express.js for the backend, and PostgreSQL for database storage.
+The frontend is built with React, Vite, React Router, Axios, and Material UI. The backend is built with Node.js and Express.js. PostgreSQL is used for persistent data storage.
 
 ## Main Features
 
 - Browse cafes and hotels
 - Search places by name
 - Filter by category: Cafe or Hotel
-- View place details
-- View average rating
-- Read user reviews
-- Submit new reviews
-- Rate places from 1 to 5 stars
-- Responsive UI for desktop and mobile
-- Backend REST API
+- View detailed place information
+- View average rating and review count
+- Register and login with JWT authentication
+- Store JWT token in localStorage
+- Access protected pages
+- Save and remove favorite places
+- View My Favorites page
+- Add new cafes or hotels
+- Edit places created by the logged-in user
+- Delete places created by the logged-in user
+- Upload multiple place images
+- View image gallery on details page
+- View place map using OpenStreetMap
+- View nearby places within 5 km
+- View top-rated, recent, and popular homepage sections
+- View My Places page
+- View user profile
+- Submit authenticated reviews
+- Responsive Material UI design
+- REST API backend
 - PostgreSQL database integration
 
 ## Technology Stack
@@ -44,20 +75,27 @@ The application is built using React for the frontend, Express.js for the backen
 - Material UI
 - React Router
 - Axios
+- React Leaflet
+- Leaflet
 
 ### Backend
 
 - Node.js
 - Express.js
 - PostgreSQL client library: `pg`
+- `bcryptjs` for password hashing
+- `jsonwebtoken` for JWT authentication
 - CORS
 - Helmet
 - Morgan
 - Dotenv
+- Cloudinary
+- Multer
 
 ### Database
 
 - PostgreSQL
+- OpenStreetMap map tiles through Leaflet
 
 ## Project Folder Structure
 
@@ -67,14 +105,21 @@ VenueVista/
 │   ├── config/
 │   │   └── db.js
 │   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── favoriteController.js
 │   │   ├── hotelController.js
 │   │   └── reviewController.js
 │   ├── middleware/
+│   │   ├── authMiddleware.js
 │   │   └── errorMiddleware.js
 │   ├── models/
+│   │   ├── favoriteModel.js
 │   │   ├── hotelModel.js
-│   │   └── reviewModel.js
+│   │   ├── reviewModel.js
+│   │   └── userModel.js
 │   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── favoriteRoutes.js
 │   │   ├── hotelRoutes.js
 │   │   └── reviewRoutes.js
 │   ├── app.js
@@ -84,7 +129,9 @@ VenueVista/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
+│   │   │   ├── auth.js
 │   │   │   ├── client.js
+│   │   │   ├── favorites.js
 │   │   │   ├── hotels.js
 │   │   │   └── reviews.js
 │   │   ├── components/
@@ -92,11 +139,20 @@ VenueVista/
 │   │   │   ├── HotelCard.jsx
 │   │   │   ├── Layout.jsx
 │   │   │   ├── LoadingState.jsx
+│   │   │   ├── ProtectedRoute.jsx
 │   │   │   └── ReviewForm.jsx
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
 │   │   ├── pages/
 │   │   │   ├── HomePage.jsx
 │   │   │   ├── HotelDetailsPage.jsx
-│   │   │   └── NotFoundPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── MyFavoritesPage.jsx
+│   │   │   ├── MyPlacesPage.jsx
+│   │   │   ├── NotFoundPage.jsx
+│   │   │   ├── PlaceFormPage.jsx
+│   │   │   ├── ProfilePage.jsx
+│   │   │   └── RegisterPage.jsx
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── theme.js
@@ -105,6 +161,8 @@ VenueVista/
 │   ├── package.json
 │   └── .env.example
 ├── database/
+│   ├── migrations/
+│   │   └── 001_auth_favorites_places.sql
 │   ├── schema.sql
 │   └── seed.sql
 ├── README.md
@@ -113,7 +171,7 @@ VenueVista/
 
 ## Database Design
 
-The project uses three main tables:
+The project uses four main tables:
 
 ### hotels
 
@@ -127,16 +185,21 @@ Columns:
 - `location`
 - `description`
 - `image_url`
+- `created_by`
+- `latitude`
+- `longitude`
 
 ### users
 
-Stores user information.
+Stores registered user accounts.
 
 Columns:
 
 - `id`
 - `name`
 - `email`
+- `password_hash`
+- `created_at`
 
 ### reviews
 
@@ -151,30 +214,63 @@ Columns:
 - `review`
 - `created_at`
 
-## Database Schema
+### favorites
 
-The schema is stored in:
+Stores places saved by users.
+
+Columns:
+
+- `id`
+- `user_id`
+- `hotel_id`
+- `created_at`
+
+The `favorites` table has a unique constraint on `(user_id, hotel_id)` so the same user cannot save the same place twice.
+
+### place_images
+
+Stores multiple gallery images for each cafe or hotel.
+
+Columns:
+
+- `id`
+- `hotel_id`
+- `image_url`
+- `created_at`
+
+## Database Files
+
+Schema:
 
 ```text
 database/schema.sql
 ```
 
-The sample data is stored in:
+Seed data:
 
 ```text
 database/seed.sql
 ```
 
-Currently, the seed file contains 6 sample places:
+Migration for existing databases:
 
-- 3 cafes
-- 3 hotels
+```text
+database/migrations/001_auth_favorites_places.sql
+database/migrations/002_images_locations_nearby.sql
+```
 
-More hotels and cafes can be added by inserting more rows into the `hotels` table.
+The seed file includes demo users and sample cafes/hotels.
+
+Demo login:
+
+```text
+Email: aarav@example.com
+Password: password123
+```
 
 ## Backend Details
 
-The backend is an Express.js API server.
+The backend is an Express.js REST API.
 
 Main backend file:
 
@@ -182,10 +278,16 @@ Main backend file:
 backend/app.js
 ```
 
-Database connection file:
+Database connection:
 
 ```text
 backend/config/db.js
+```
+
+Authentication middleware:
+
+```text
+backend/middleware/authMiddleware.js
 ```
 
 The backend uses environment variables from:
@@ -201,66 +303,277 @@ PORT=5000
 NODE_ENV=development
 DATABASE_URL=postgres://postgres:your_password@localhost:5432/venuevista
 FRONTEND_URL=http://localhost:5173
+JWT_SECRET=replace_with_a_long_random_secret
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=venuevista
 ```
+
+## Image Upload
+
+Image upload uses:
+
+- `multer` for multipart upload handling
+- `cloudinary` for hosted image storage
+- 5MB max file size
+- jpg, jpeg, png, and webp validation
+
+The frontend uploads images before saving a place. The returned Cloudinary URLs are stored in the `place_images` table, and the first image is also stored in `hotels.image_url` for card previews.
+
+## Authentication
+
+Authentication uses:
+
+- `bcryptjs` to hash passwords
+- `jsonwebtoken` to create and verify JWT tokens
+- `Authorization: Bearer <token>` header for protected API routes
+
+Protected features:
+
+- Current user profile
+- Add review
+- Add favorite
+- Remove favorite
+- My Favorites
+- Add Place
+- Edit Place
+- Delete Place
+- My Places
 
 ## API Endpoints
 
-### Get All Hotels and Cafes
+### Authentication
+
+Register:
+
+```http
+POST /api/auth/register
+```
+
+Request:
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+Login:
+
+```http
+POST /api/auth/login
+```
+
+Request:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+Response:
+
+```json
+{
+  "token": "...",
+  "user": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+Current user:
+
+```http
+GET /api/auth/me
+```
+
+### Hotels and Cafes
+
+Get all places:
 
 ```http
 GET /api/hotels
 ```
 
-Returns all hotels and cafes with average rating and review count.
-
-### Search by Name
+Search by name:
 
 ```http
 GET /api/hotels?search=coffee
 ```
 
-Returns places whose names match the search text.
-
-### Filter by Category
+Filter by category:
 
 ```http
 GET /api/hotels?category=Cafe
 ```
 
-Returns places from the selected category.
-
-### Get Place Details
+Get details:
 
 ```http
 GET /api/hotels/:id
 ```
 
-Returns details of one hotel or cafe, including reviews and average rating.
+Get nearby places:
 
-### Add Review
+```http
+GET /api/hotels/:id/nearby
+```
+
+Optional radius:
+
+```http
+GET /api/hotels/:id/nearby?radius=10
+```
+
+Get top-rated places:
+
+```http
+GET /api/hotels/top-rated
+```
+
+Get recent places:
+
+```http
+GET /api/hotels/recent
+```
+
+Get popular places:
+
+```http
+GET /api/hotels/popular
+```
+
+Create place:
+
+```http
+POST /api/hotels
+```
+
+Request:
+
+```json
+{
+  "name": "Cafe Aroma",
+  "category": "Cafe",
+  "location": "Pune",
+  "latitude": 18.5204,
+  "longitude": 73.8567,
+  "description": "Best coffee in town",
+  "images": [
+    "https://res.cloudinary.com/demo/image/upload/example.jpg"
+  ]
+}
+```
+
+Get my places:
+
+```http
+GET /api/hotels/mine
+```
+
+Update place:
+
+```http
+PUT /api/hotels/:id
+```
+
+Delete place:
+
+```http
+DELETE /api/hotels/:id
+```
+
+Only the creator of a place can edit or delete it.
+
+### Favorites
+
+Get my favorites:
+
+```http
+GET /api/favorites
+```
+
+Add favorite:
+
+```http
+POST /api/favorites
+```
+
+Request:
+
+```json
+{
+  "hotel_id": 1
+}
+```
+
+Remove favorite:
+
+```http
+DELETE /api/favorites/:hotelId
+```
+
+### Upload
+
+Upload place image:
+
+```http
+POST /api/upload
+```
+
+Request type:
+
+```text
+multipart/form-data
+```
+
+Field:
+
+```text
+image
+```
+
+Response:
+
+```json
+{
+  "imageUrl": "https://res.cloudinary.com/..."
+}
+```
+
+### Reviews
+
+Add review:
 
 ```http
 POST /api/reviews
 ```
 
-Request body:
+Request:
 
 ```json
 {
   "hotel_id": 1,
-  "user_id": 1,
   "rating": 5,
   "review": "Amazing coffee"
 }
 ```
 
-### Delete Review
+Delete review:
 
 ```http
 DELETE /api/reviews/:id
 ```
 
-Deletes a review by ID.
+Reviews are submitted by the logged-in user.
 
 ## Frontend Details
 
@@ -272,69 +585,142 @@ Main frontend file:
 frontend/src/App.jsx
 ```
 
-The app uses React Router for navigation.
+Authentication state is managed by:
 
-Routes:
+```text
+frontend/src/context/AuthContext.jsx
+```
+
+Protected route logic is handled by:
+
+```text
+frontend/src/components/ProtectedRoute.jsx
+```
+
+The Axios API client stores the JWT token in request headers:
+
+```text
+frontend/src/api/client.js
+```
+
+## Frontend Routes
 
 - `/` - Home page
-- `/hotels/:id` - Details page
+- `/login` - Login page
+- `/register` - Register page
+- `/hotels/:id` - Place details page
+- `/favorites` - My Favorites page
+- `/my-places` - My Places page
+- `/places/new` - Add Place page
+- `/places/:id/edit` - Edit Place page
+- `/profile` - Profile page
+
+Protected routes:
+
+- `/favorites`
+- `/my-places`
+- `/places/new`
+- `/places/:id/edit`
+- `/profile`
 
 ## Frontend Pages
 
 ### Home Page
 
-The Home Page displays:
+Displays:
 
 - Search input
 - Category filter
-- Hotel and cafe cards
+- Top Rated Places section
+- Recent Places section
+- Popular Places section
+- Cafe and hotel cards
 - Average rating
-- Location
-- Image
-- Loading state
-- Error message
+- Favorite heart icon
+- Loading and error states
 
 ### Details Page
 
-The Details Page displays:
+Displays:
 
 - Image
 - Name
 - Category
 - Location
 - Description
+- Image gallery
+- Map
+- Nearby places
 - Average rating
-- Review list
+- Reviews
 - Review form button
 
-### Review Form
+### Login Page
 
-The Review Form allows the user to:
+Allows users to log in with email and password.
 
-- Select rating from 1 to 5 stars
-- Enter review text
-- Submit the review
+### Register Page
 
-After submission, the reviews are refreshed automatically.
+Allows users to create a new account.
+
+### My Favorites Page
+
+Displays all places saved by the logged-in user.
+
+### My Places Page
+
+Displays all places created by the logged-in user.
+
+Actions:
+
+- Edit
+- Delete
+
+### Add Place Page
+
+Allows logged-in users to create a new cafe or hotel.
+
+Fields:
+
+- Name
+- Category
+- Location
+- Latitude
+- Longitude
+- Description
+- Images
+
+### Edit Place Page
+
+Pre-fills existing place data and allows the creator to update it.
+
+### Profile Page
+
+Displays the logged-in user's name and email.
 
 ## UI Design
 
 The UI uses Material UI components:
 
 - AppBar
+- Drawer
+- Avatar
 - Container
 - Grid
 - Card
 - CardMedia
 - CardContent
+- Dialog
+- Snackbar
+- Skeleton
+- CircularProgress
 - Typography
 - Rating
 - TextField
 - Select
 - Button
-- Dialog
 
-The design is clean, modern, and responsive.
+The design is modern, clean, and responsive.
 
 ## Current Local URLs
 
@@ -390,7 +776,14 @@ psql -d venuevista -f database/schema.sql
 psql -d venuevista -f database/seed.sql
 ```
 
-### 6. Configure Backend Environment
+### 6. Apply Migration For Existing Database
+
+```bash
+psql -d venuevista -f database/migrations/001_auth_favorites_places.sql
+psql -d venuevista -f database/migrations/002_images_locations_nearby.sql
+```
+
+### 7. Configure Backend Environment
 
 Create:
 
@@ -405,16 +798,21 @@ PORT=5000
 NODE_ENV=development
 DATABASE_URL=postgres://postgres:your_password@localhost:5432/venuevista
 FRONTEND_URL=http://localhost:5173
+JWT_SECRET=replace_with_a_long_random_secret
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=venuevista
 ```
 
-### 7. Start Backend
+### 8. Start Backend
 
 ```bash
 cd backend
 npm run dev
 ```
 
-### 8. Start Frontend
+### 9. Start Frontend
 
 ```bash
 cd frontend
@@ -453,27 +851,55 @@ Check:
 - Schema and seed files were executed
 - Backend was restarted after changing `.env`
 
+### Authentication Error
+
+If login fails:
+
+- Check email and password
+- Confirm `JWT_SECRET` exists in `backend/.env`
+- Confirm the users table has `password_hash`
+- Restart the backend after `.env` changes
+
+### Protected Page Redirects To Login
+
+This means the user is not logged in or the JWT token is invalid. Log in again.
+
 ### Blank React Page
 
 If the page is blank, check that `frontend/vite.config.js` exists and includes the React plugin.
+
+### Cloudinary Upload Error
+
+If image upload fails, check:
+
+- Cloudinary env variables exist in `backend/.env`
+- Backend was restarted after changing `.env`
+- File type is jpg, jpeg, png, or webp
+- File size is 5MB or smaller
+
+### Map Does Not Load
+
+If the map does not load:
+
+- Check internet access for OpenStreetMap tiles
+- Confirm the place has valid latitude and longitude
+- Confirm `leaflet` CSS is imported in `frontend/src/main.jsx`
 
 ## Future Enhancements
 
 Possible improvements:
 
-- User authentication
 - Admin dashboard
-- Add hotel/cafe form
-- Edit hotel/cafe details
-- Delete hotel/cafe records
-- Upload local images
+- Role-based access control
 - Sort by rating
 - Filter by location
 - Pagination
-- User profile page
-- Better review moderation
+- Review moderation
+- User profile editing
+- Password reset
+- Better image validation
+- Map integration
 
 ## Conclusion
 
-VenueVista is a complete full-stack recommendation system for cafes and hotels. It demonstrates frontend development with React and Material UI, backend API development with Express.js, and database integration using PostgreSQL.
-
+VenueVista is now a complete full-stack recommendation system with browsing, reviews, authentication, favorites, and creator-owned place management. It demonstrates frontend development with React and Material UI, backend API development with Express.js, JWT authentication, and PostgreSQL database integration.

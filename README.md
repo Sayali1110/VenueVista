@@ -102,10 +102,15 @@ http://localhost:5173
 - `GET /api/hotels?search=coffee` - search by name
 - `GET /api/hotels?category=Cafe` - filter by category
 - `GET /api/hotels/:id` - get place details, reviews, and average rating
+- `GET /api/hotels/:id/nearby` - get nearby places within 5 km by default
+- `GET /api/hotels/top-rated` - get top-rated places
+- `GET /api/hotels/recent` - get recently added places
+- `GET /api/hotels/popular` - get popular places by review count
 - `POST /api/hotels` - create authenticated user's place
 - `GET /api/hotels/mine` - list authenticated user's places
 - `PUT /api/hotels/:id` - update own place
 - `DELETE /api/hotels/:id` - delete own place
+- `POST /api/upload` - upload an authenticated image to Cloudinary
 - `GET /api/favorites` - list authenticated user's favorites
 - `POST /api/favorites` - save a favorite
 - `DELETE /api/favorites/:hotelId` - remove a favorite
@@ -117,6 +122,19 @@ Seeded demo users use this password:
 ```text
 password123
 ```
+
+## Cloudinary Setup
+
+Image upload requires Cloudinary credentials in `backend/.env`:
+
+```env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=venuevista
+```
+
+Uploads accept jpg, jpeg, png, and webp files up to 5MB.
 
 ## Review Payload
 

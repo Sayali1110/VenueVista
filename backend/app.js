@@ -7,6 +7,7 @@ import authRoutes from './routes/authRoutes.js';
 import favoriteRoutes from './routes/favoriteRoutes.js';
 import hotelRoutes from './routes/hotelRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

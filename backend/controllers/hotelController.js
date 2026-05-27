@@ -4,7 +4,11 @@ import {
   findHotelById,
   findHotels,
   findHotelsByCreator,
+  findNearbyHotels,
+  findPopularHotels,
   findReviewsByHotelId,
+  findRecentHotels,
+  findTopRatedHotels,
   updateHotel
 } from '../models/hotelModel.js';
 
@@ -14,17 +18,30 @@ const validateHotelPayload = (payload) => {
   const category = String(payload.category || '').trim();
   const location = String(payload.location || '').trim();
   const description = String(payload.description || '').trim();
-  const image_url = String(payload.image_url || '').trim();
+  const images = Array.isArray(payload.images)
+    ? payload.images.map((image) => String(image || '').trim()).filter(Boolean)
+    : [];
+  const latitude = Number(payload.latitude);
+  const longitude = Number(payload.longitude);
 
   if (name.length < 2) errors.push('Name must be at least 2 characters.');
   if (!['Cafe', 'Hotel'].includes(category)) errors.push('Category must be Cafe or Hotel.');
   if (location.length < 2) errors.push('Location must be at least 2 characters.');
   if (description.length < 10) errors.push('Description must be at least 10 characters.');
-  if (!image_url || !/^https?:\/\//i.test(image_url)) errors.push('Image URL must be a valid http or https URL.');
+  if (!images.length) errors.push('At least one image is required.');
+  if (images.some((imageUrl) => !/^https?:\/\//i.test(imageUrl))) {
+    errors.push('Every image must be a valid http or https URL.');
+  }
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    errors.push('Latitude must be a valid number between -90 and 90.');
+  }
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    errors.push('Longitude must be a valid number between -180 and 180.');
+  }
 
   return {
     errors,
-    values: { name, category, location, description, image_url }
+    values: { name, category, location, description, images, latitude, longitude }
   };
 };
 
@@ -38,6 +55,56 @@ export const getHotels = async (req, res, next) => {
     });
 
     res.status(200).json({ data: hotels });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getNearbyHotels = async (req, res, next) => {
+  try {
+    const hotelId = Number(req.params.id);
+    const radiusKm = Number(req.query.radius || 5);
+
+    if (!Number.isInteger(hotelId) || hotelId <= 0) {
+      return res.status(400).json({ message: 'Hotel id must be a positive integer.' });
+    }
+
+    if (!Number.isFinite(radiusKm) || radiusKm <= 0 || radiusKm > 100) {
+      return res.status(400).json({ message: 'Radius must be a number between 0 and 100 kilometers.' });
+    }
+
+    const hotel = await findHotelById(hotelId, req.user?.id);
+
+    if (!hotel) {
+      return res.status(404).json({ message: 'Hotel or cafe not found.' });
+    }
+
+    const nearby = await findNearbyHotels({ hotelId, radiusKm });
+    res.status(200).json({ data: nearby });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTopRatedHotels = async (_req, res, next) => {
+  try {
+    res.status(200).json({ data: await findTopRatedHotels() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecentHotels = async (_req, res, next) => {
+  try {
+    res.status(200).json({ data: await findRecentHotels() });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPopularHotels = async (_req, res, next) => {
+  try {
+    res.status(200).json({ data: await findPopularHotels() });
   } catch (error) {
     next(error);
   }
